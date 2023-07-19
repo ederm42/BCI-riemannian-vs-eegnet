@@ -42,6 +42,7 @@ class BaseEvaluation(ABC):
         use MNE epoch to train pipelines.
     mne_labels: bool, default=False
         if returning MNE epoch, use original dataset label if True
+    fit_params: TODO
     """
 
     def __init__(
@@ -57,6 +58,7 @@ class BaseEvaluation(ABC):
         additional_columns=None,
         return_epochs=False,
         mne_labels=False,
+        fit_params=None,
     ):
         self.random_state = random_state
         self.n_jobs = n_jobs
@@ -64,6 +66,7 @@ class BaseEvaluation(ABC):
         self.hdf5_path = hdf5_path
         self.return_epochs = return_epochs
         self.mne_labels = mne_labels
+        self.fit_params = fit_params
 
         # check paradigm
         if not isinstance(paradigm, BaseParadigm):
@@ -121,6 +124,28 @@ class BaseEvaluation(ABC):
             hdf5_path=self.hdf5_path,
             additional_columns=additional_columns,
         )
+
+    def _check_fit_params_for_pipeline(self, clf):
+        if self.fit_params == None:
+            return self.fit_params
+
+        fit_params = self.fit_params
+        pipeline_names = [step[0] for step in clf.steps]
+        for pname, pval in fit_params.items():
+            if "__" not in pname:
+                raise ValueError(
+                    "Pipeline.fit does not accept the {} parameter. "
+                    "You can pass parameters to specific steps of your "
+                    "pipeline using the stepname__parameter format, e.g. "
+                    "`Pipeline.fit(X, y, logisticregression__sample_weight"
+                    "=sample_weight)`.".format(pname)
+                )
+            step, param = pname.split("__", 1)
+            if step in pipeline_names:
+                continue
+            else:
+                return None
+        return fit_params
 
     def process(self, pipelines):
         """Runs all pipelines on all datasets.

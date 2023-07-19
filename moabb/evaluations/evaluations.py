@@ -165,6 +165,7 @@ class WithinSessionEvaluation(BaseEvaluation):
                             scoring=self.paradigm.scoring,
                             n_jobs=self.n_jobs,
                             error_score=self.error_score,
+                            fit_params=self._check_fit_params_for_pipeline(clf)
                         )
                     score = acc.mean()
                     duration = time() - t_start
@@ -395,8 +396,8 @@ class CrossSessionEvaluation(BaseEvaluation):
                             test,
                             verbose=False,
                             parameters=None,
-                            fit_params=None,
                             error_score=self.error_score,
+                            fit_params = self._check_fit_params_for_pipeline(clf)
                         )
                         score = result["test_scores"]
                     duration = time() - t_start
@@ -494,8 +495,13 @@ class CrossSubjectEvaluation(BaseEvaluation):
 
                 # iterate over pipelines
                 for name, clf in run_pipes.items():
+
+                    fit_params = self._check_fit_params_for_pipeline(clf)
                     t_start = time()
-                    model = deepcopy(clf).fit(X[train], y[train])
+                    if fit_params is None:
+                        model = deepcopy(clf).fit(X[train], y[train])
+                    else:
+                        model = deepcopy(clf).fit(X[train], y[train], **self._check_fit_params_for_pipeline(clf))
                     duration = time() - t_start
 
                     # we eval on each session

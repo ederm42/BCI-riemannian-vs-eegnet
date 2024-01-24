@@ -1,19 +1,15 @@
 from mne.decoding import CSP
 from pyriemann.classification import MDM
-from pyriemann.tangentspace import TangentSpace
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
 from pyriemann.estimation import Covariances, XdawnCovariances, ERPCovariances, HankelCovariances, CospCovariances, Shrinkage
 from pyriemann.tangentspace import TangentSpace
-from pyriemann.utils.viz import plot_confusion_matrix
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
-import numpy as np
 
 from keras.wrappers.scikit_learn import KerasClassifier
 
-from moabb.pipelines import SSVEP_CCA, SSVEP_TRCA, ExtendedSSVEPSignal
+from moabb.pipelines import ExtendedSSVEPSignal
 
 from EEGNet_keras_models import create_eegnet_default_model, \
     create_eegnet_deepconvnet_model, \
@@ -118,11 +114,11 @@ def get_ssvep_pipelines(**kwargs):
         Covariances("oas"),
         MDM(metric="logeuclid")
     )
-    pipelines["tgsp+svm"] = make_pipeline(
+    pipelines["TGSP+LR"] = make_pipeline(
         # ExtendedSSVEPSignal(),
         Covariances("oas"),
         TangentSpace(metric="riemann"),
-        LogisticRegression(solver="lbfgs", multi_class="auto"),#SVC(kernel="linear")
+        LogisticRegression(solver="lbfgs", multi_class="auto"),
     )
 
 
@@ -163,14 +159,14 @@ def get_ssvep_fb_pipelines(**kwargs):
         Covariances("oas"),
         MDM(metric="logeuclid")
     )
-    pipelines["Tgsp+SVC"] = make_pipeline(
+    pipelines["TGSP+SVM"] = make_pipeline(
         ExtendedSSVEPSignal(),
         Covariances("oas"),
         TangentSpace(metric="riemann"),
         SVC(kernel="linear")
     )
     # http://moabb.neurotechx.com/docs/auto_examples/plot_cross_subject_ssvep.html
-    pipelines["Tgsp+LogReg"] = make_pipeline(
+    pipelines["TGSP+LogReg"] = make_pipeline(
         ExtendedSSVEPSignal(),
         Covariances(estimator="oas"),
         TangentSpace(metric="riemann"),
@@ -198,8 +194,11 @@ def get_eegnet_pipelines(chans, samples, nb_classes, eegnet_types=None):
     pipelines = {}
     build_fns = {
         "default": create_eegnet_default_model,
+        "default_fb": create_eegnet_default_model,
         "deep": create_eegnet_deepconvnet_model,
+        "deep_fb": create_eegnet_deepconvnet_model,
         "shallow": create_eegnet_shallow_model,
+        "shallow_fb": create_eegnet_shallow_model,
         "ssvep": create_eegnet_ssvep_model,
         "ssvep_fb": create_eegnet_ssvep_model
     }
@@ -210,9 +209,10 @@ def get_eegnet_pipelines(chans, samples, nb_classes, eegnet_types=None):
         clf = KerasClassifier(build_fn=build_fn,
                               chans=chans, samples=samples, nb_classes=nb_classes,  # build_fn arguments
                               verbose=2)
+        # clf._estimator_type = 'classifier'
 
         # special handling for certain pipelines with extra steps
-        if "ssvep_fb" in eegnet_types:
+        if "fb" in eegnet_type:
             pipelines[pipeline_name] = make_pipeline(ExtendedSSVEPSignal(), clf)
         else:  # default
             pipelines[pipeline_name] = make_pipeline(clf)

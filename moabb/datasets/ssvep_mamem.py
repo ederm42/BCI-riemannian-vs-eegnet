@@ -1,6 +1,4 @@
-"""
-SSVEP MAMEM1 dataset.
-"""
+"""SSVEP MAMEM1 dataset."""
 
 import logging
 import os.path as osp
@@ -25,6 +23,8 @@ from .download import (
 log = logging.getLogger(__name__)
 
 MAMEM_URL = "https://ndownloader.figshare.com/files/"
+
+
 # Specific release
 # MAMEM1_URL = 'https://ndownloader.figshare.com/articles/2068677/versions/6'
 # MAMEM2_URL = 'https://ndownloader.figshare.com/articles/3153409/versions/4'
@@ -37,9 +37,10 @@ MAMEM_URL = "https://ndownloader.figshare.com/files/"
 
 
 def mamem_event(eeg, dins, labels=None):
-    """Convert DIN field into events
+    """Convert DIN field into events.
 
-    Code adapted from https://github.com/MAMEM/eeg-processing-toolbox
+    Code adapted from
+    https://github.com/MAMEM/eeg-processing-toolbox
     """
     thres_split = 2000
     timestamps = dins[1, :]
@@ -67,7 +68,7 @@ def mamem_event(eeg, dins, labels=None):
     sampleB = samples[i - 1]
     freqs.append(s // c)
     t_start.append(sampleA)
-    freqs = np.array(freqs, dtype=np.int) * 2
+    freqs = np.array(freqs, dtype=int) * 2
     freqs = 1000 // freqs
     t_start = np.array(t_start)
 
@@ -82,7 +83,7 @@ def mamem_event(eeg, dins, labels=None):
 
 
 class BaseMAMEM(BaseDataset):
-    """Base class for MAMEM datasets"""
+    """Base class for MAMEM datasets."""
 
     def __init__(self, events, sessions_per_subject, code, doi, figshare_id):
         super().__init__(
@@ -97,7 +98,7 @@ class BaseMAMEM(BaseDataset):
         self.figshare_id = figshare_id
 
     def _get_single_subject_data(self, subject):
-        """return data for a single subject"""
+        """Return data for a single subject."""
         fnames = self.data_path(subject)
         filelist = fs_get_file_list(self.figshare_id)
         fsn = fs_get_file_name(filelist)
@@ -107,14 +108,14 @@ class BaseMAMEM(BaseDataset):
             fnamed = fsn[osp.basename(fpath)]
             if fnamed[4] == "x":
                 continue
-            session_name = "session_0"
-            if self.code == "SSVEP MAMEM3":
+            session_name = "0"
+            if self.code == "MAMEM3":
                 repetition = len(fnamed) - 10
-                run_name = f"run_{(ord(fnamed[4])-97)*2 + repetition}"
+                run_name = str((ord(fnamed[4]) - 97) * 2 + repetition)
             else:
-                run_name = f"run_{ord(fnamed[4])-97}"
+                run_name = str(ord(fnamed[4]) - 97)
 
-            if self.code == "SSVEP MAMEM3":
+            if self.code == "MAMEM3":
                 m = loadmat(fpath)
                 ch_names = [e[0] for e in m["info"][0, 0][9][0]]
                 sfreq = 128
@@ -125,7 +126,7 @@ class BaseMAMEM(BaseDataset):
                 ch_names = [f"E{i + 1}" for i in range(0, 256)]
                 ch_names.append("stim")
                 sfreq = 250
-                if self.code == "SSVEP MAMEM2":
+                if self.code == "MAMEM2":
                     labels = m["labels"]
                 else:
                     labels = None
@@ -150,7 +151,7 @@ class BaseMAMEM(BaseDataset):
             raise (ValueError("Invalid subject number"))
 
         sub = f"{subject:02d}"
-        sign = self.code.split()[1]
+        sign = self.code.split("-")[0]
         key_dest = f"MNE-{sign.lower():s}-data"
         path = osp.join(get_dataset_path(sign, path), key_dest)
 
@@ -167,14 +168,23 @@ class BaseMAMEM(BaseDataset):
 
 
 class MAMEM1(BaseMAMEM):
-    """SSVEP MAMEM 1 dataset
+    """SSVEP MAMEM 1 dataset.
+
+    .. admonition:: Dataset summary
+
+
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
+        Name      #Subj    #Chan    #Classes  #Trials / class    Trials length    Sampling rate      #Sessions
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
+        MAMEM1       10      256           5  12-15              3s               250Hz                      1
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
 
     Dataset from [1]_.
 
     EEG signals with 256 channels captured from 11 subjects executing a
     SSVEP-based experimental protocol. Five different frequencies
     (6.66, 7.50, 8.57, 10.00 and 12.00 Hz) have been used for the visual
-    stimulation,and the EGI 300 Geodesic EEG System (GES 300), using a
+    stimulation,and the EGI 300 Geodesic EEG System, using a
     stimulation, HydroCel Geodesic Sensor Net (HCGSN) and a sampling rate of
     250 Hz has been used for capturing the signals.
 
@@ -271,21 +281,30 @@ class MAMEM1(BaseMAMEM):
             events={"6.66": 1, "7.50": 2, "8.57": 3, "10.00": 4, "12.00": 5},
             sessions_per_subject=1,
             # 5 runs per sessions, except 3 for S001, S003, S008, 4 for S004
-            code="SSVEP MAMEM1",
+            code="MAMEM1",
             doi="https://arxiv.org/abs/1602.00904",
             figshare_id=2068677,
         )
 
 
 class MAMEM2(BaseMAMEM):
-    """SSVEP MAMEM 2 dataset
+    """SSVEP MAMEM 2 dataset.
+
+    .. admonition:: Dataset summary
+
+
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
+        Name      #Subj    #Chan    #Classes  #Trials / class    Trials length    Sampling rate      #Sessions
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
+        MAMEM2       10      256           5  20-30              3s               250Hz                      1
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
 
     Dataset from [1]_.
 
     EEG signals with 256 channels captured from 11 subjects executing a
     SSVEP-based experimental protocol. Five different frequencies
     (6.66, 7.50, 8.57, 10.00 and 12.00 Hz) have been used for the visual
-    stimulation,and the EGI 300 Geodesic EEG System (GES 300), using a
+    stimulation,and the EGI 300 Geodesic EEG System, using a
     stimulation, HydroCel Geodesic Sensor Net (HCGSN) and a sampling rate of
     250 Hz has been used for capturing the signals.
 
@@ -355,14 +374,23 @@ class MAMEM2(BaseMAMEM):
         super().__init__(
             events={"6.66": 1, "7.50": 2, "8.57": 3, "10.00": 4, "12.00": 5},
             sessions_per_subject=1,
-            code="SSVEP MAMEM2",
+            code="MAMEM2",
             doi="https://arxiv.org/abs/1602.00904",
             figshare_id=3153409,
         )
 
 
 class MAMEM3(BaseMAMEM):
-    """SSVEP MAMEM 3 dataset
+    """SSVEP MAMEM 3 dataset.
+
+    .. admonition:: Dataset summary
+
+
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
+        Name      #Subj    #Chan    #Classes  #Trials / class    Trials length    Sampling rate      #Sessions
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
+        MAMEM3       10       14           4  20-30              3s               128Hz                      1
+        ======  =======  =======  ==========  =================  ===============  ===============  ===========
 
     Dataset from [1]_.
 
@@ -454,7 +482,7 @@ class MAMEM3(BaseMAMEM):
                 "12.00": 33025,
             },
             sessions_per_subject=1,
-            code="SSVEP MAMEM3",
+            code="MAMEM3",
             doi="https://arxiv.org/abs/1602.00904",
             figshare_id=3413851,
         )
